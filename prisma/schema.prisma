@@ -1269,7 +1269,7 @@ model AboutUs {
 }
 
 // ─────────────────────────────────────────────────────────
-// ABOUT COUNTRY (Kazakhstan)
+// ABOUT COUNTRY (UAE)
 // ─────────────────────────────────────────────────────────
 
 model AboutCountryPage {
@@ -1440,7 +1440,7 @@ model EducationSystemPage {
 
 model CountryDocument {
   id        Int            @id @default(autoincrement())
-  country   String         @default("Kazakhstan")
+  country   String         @default("UAE")
   type      CountryDocType
   title     String?
   fileName  String?        @map("file_name")

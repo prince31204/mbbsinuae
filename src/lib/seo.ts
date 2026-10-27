@@ -185,7 +185,7 @@ export function universitySchema(university: {
     address: {
       "@type": "PostalAddress",
       addressLocality: university.city || "UAE",
-      addressCountry: "MU",
+      addressCountry: "AE",
     },
     ...(university.rating && {
       aggregateRating: {
