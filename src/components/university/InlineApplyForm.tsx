@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useSyncExternalStore } from "react";
 import {
   User,
   Mail,
@@ -137,13 +137,19 @@ function Full({ children }: { children: React.ReactNode }) {
   return <div className="md:col-span-2">{children}</div>;
 }
 
+const emptySubscribe = () => () => {};
+
 export default function InlineApplyForm({
   universityId,
   universityName,
-  universitySlug,
+  universitySlug: _universitySlug,
 }: Props) {
   const [form, setForm] = useState(EMPTY);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
   const [programs, setPrograms] = useState<
     { id: number; programName: string }[]
   >([]);
@@ -152,19 +158,27 @@ export default function InlineApplyForm({
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   // Load programs for this university on mount
   useEffect(() => {
     if (!universityId) return;
-    setLoadingProgs(true);
+    let isCancelled = false;
+    Promise.resolve().then(() => {
+      if (!isCancelled) setLoadingProgs(true);
+    });
     fetch(`/api/universities/${universityId}/programs`)
       .then((r) => r.json())
-      .then((d) => setPrograms(d?.programs ?? d ?? []))
-      .catch(() => setPrograms([]))
-      .finally(() => setLoadingProgs(false));
+      .then((d) => {
+        if (!isCancelled) setPrograms(d?.programs ?? d ?? []);
+      })
+      .catch(() => {
+        if (!isCancelled) setPrograms([]);
+      })
+      .finally(() => {
+        if (!isCancelled) setLoadingProgs(false);
+      });
+    return () => {
+      isCancelled = true;
+    };
   }, [universityId]);
 
   const set = (field: string, value: string | boolean) =>

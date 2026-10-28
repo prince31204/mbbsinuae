@@ -149,7 +149,7 @@ export async function GET(req: NextRequest) {
 
     const zipBuffer = zip.toBuffer();
 
-    return new NextResponse(zipBuffer, {
+    return new NextResponse(new Uint8Array(zipBuffer), {
       headers: {
         "Content-Type": "application/zip",
         "Content-Disposition":
