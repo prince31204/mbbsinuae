@@ -4,6 +4,8 @@ import OurPartnersContent from "@/components/partners/OurPartnersContent";
 
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Promise<Metadata> = buildMetadata({
   title: "Our Partners - Universities and Organizations | mbbsinuae.com",
   description:

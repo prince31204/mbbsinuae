@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/adminAuth";
+import { revalidateScholarshipPages } from "@/lib/revalidate-public-content";
 
 const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -168,6 +169,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const data = normalizeScholarshipBody(body);
     const scholarship = await prisma.scholarship.create({ data });
+    revalidateScholarshipPages(scholarship.slug);
     return NextResponse.json(scholarship, { status: 201 });
   } catch (error) {
     const message =

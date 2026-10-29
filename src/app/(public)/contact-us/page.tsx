@@ -1,13 +1,13 @@
 "use client";
 
+import { Suspense } from "react";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
+import type { ExpertTeam, Office } from "@prisma/client";
 import {
   Phone,
   Mail,
   MapPin,
-  Clock,
   Send,
   Loader2,
   User,
@@ -21,8 +21,9 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-export default function ContactPage() {
+function ContactForm() {
   const searchParams = useSearchParams();
+  const source = searchParams.get("source") || "contact-us";
 
   // Core Form State
   const [form, setForm] = useState({
@@ -33,7 +34,6 @@ export default function ContactPage() {
     inquiryType: "",
     message: "",
   });
-  const [source, setSource] = useState("contact-us");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,13 +53,11 @@ export default function ContactPage() {
   const [scheduleSuccess, setScheduleSuccess] = useState(false);
 
   // Dynamic Data State
-  const [offices, setOffices] = useState<any[]>([]);
-  const [team, setTeam] = useState<any[]>([]);
-  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [offices, setOffices] = useState<Office[]>([]);
+  const [team, setTeam] = useState<ExpertTeam[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
-      setIsLoadingData(true);
       try {
         const [offres, teamres] = await Promise.all([
           fetch("/api/public/offices"),
@@ -71,17 +69,10 @@ export default function ContactPage() {
         setTeam(Array.isArray(teamData) ? teamData : []);
       } catch (err) {
         console.error("Failed to fetch data:", err);
-      } finally {
-        setIsLoadingData(false);
       }
     };
     fetchData();
   }, []);
-
-  useEffect(() => {
-    const s = searchParams.get("source");
-    if (s) setSource(s);
-  }, [searchParams]);
 
   const handleInputChange = (f: string, v: string) =>
     setForm((p) => ({ ...p, [f]: v }));
@@ -211,7 +202,7 @@ export default function ContactPage() {
             </h1>
             <p className="text-xl text-[#343A40] mb-10 max-w-3xl mx-auto leading-relaxed">
               Start your journey to international medical education with the
-              help of India's most trusted consultants for MBBS in UAE.
+              help of India&apos;s most trusted consultants for MBBS in UAE.
             </p>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 max-w-4xl mx-auto">
@@ -865,5 +856,19 @@ export default function ContactPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ContactPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center text-sm text-gray-500">
+          Loading...
+        </div>
+      }
+    >
+      <ContactForm />
+    </Suspense>
   );
 }

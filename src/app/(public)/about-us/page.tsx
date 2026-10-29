@@ -22,6 +22,8 @@ import { prisma } from "@/lib/prisma";
 import TestimonialSection from "@/app/(public)/about-us/TestimonialSection";
 import { getHomepageStats } from "@/lib/public-page-content";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Promise<Metadata> = buildMetadata({
   title: "About Us — Global MBBS in UAE Consultants | mbbsinuae.com",
   description:

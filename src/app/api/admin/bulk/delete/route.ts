@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/adminAuth";
+import {
+  revalidateArticlePages,
+  revalidateBlogPages,
+  revalidateNewsPages,
+  revalidateScholarshipPages,
+} from "@/lib/revalidate-public-content";
 
 // POST /api/admin/bulk/delete
 export async function POST(req: NextRequest) {
@@ -45,5 +51,17 @@ export async function POST(req: NextRequest) {
   // Type-safe bulk delete
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   await (prisma[prismaModel] as any).deleteMany({ where: { id: { in: ids } } });
+  if (model === "blog" || model === "blogCategory") {
+    revalidateBlogPages({ all: true });
+  }
+  if (model === "scholarship") {
+    revalidateScholarshipPages();
+  }
+  if (model === "article" || model === "articleCategory") {
+    revalidateArticlePages();
+  }
+  if (model === "news" || model === "newsCategory") {
+    revalidateNewsPages();
+  }
   return NextResponse.json({ success: true, deleted: ids.length });
 }

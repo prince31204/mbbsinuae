@@ -51,8 +51,8 @@ export default function CreateBlogPage() {
     metaDescription: "",
     schema: "",
     readingTime: 5,
-    authorId: "1",
-    categoryId: "1",
+    authorId: "",
+    categoryId: "",
   });
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<{ id: number; name: string }[]>(
@@ -67,8 +67,15 @@ export default function CreateBlogPage() {
     ]).then(([cats, usrs]) => {
       setCategories(cats.data ?? []);
       setUsers(usrs.data ?? []);
-      if (cats.data?.[0]) set("categoryId", String(cats.data[0].id));
-      if (usrs.data?.[0]) set("authorId", String(usrs.data[0].id));
+      setForm((current) => ({
+        ...current,
+        ...(cats.data?.[0] && {
+          categoryId: String(cats.data[0].id),
+        }),
+        ...(usrs.data?.[0] && {
+          authorId: String(usrs.data[0].id),
+        }),
+      }));
     });
   }, []);
 
@@ -88,11 +95,20 @@ export default function CreateBlogPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const result = await res.json().catch(() => null);
+        throw new Error(
+          typeof result?.error === "string"
+            ? result.error
+            : `Failed to create post (HTTP ${res.status}).`,
+        );
+      }
       toast.success("Blog post created!");
       router.push("/admin/blogs");
-    } catch {
-      toast.error("Failed to create post.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create post.",
+      );
     } finally {
       setLoading(false);
     }

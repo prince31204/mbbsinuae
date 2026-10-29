@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/adminAuth";
+import { revalidateBlogPages } from "@/lib/revalidate-public-content";
 
 export async function GET(req: NextRequest) {
   const { session, error: authError } = await requireAdmin();
@@ -29,5 +30,6 @@ export async function POST(req: NextRequest) {
   if (authError) return authError;
   const body = await req.json();
   const category = await prisma.blogCategory.create({ data: body });
+  revalidateBlogPages({ categorySlug: category.slug });
   return NextResponse.json(category, { status: 201 });
 }

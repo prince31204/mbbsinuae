@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireAdmin } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
+import { revalidateArticlePages } from "@/lib/revalidate-public-content";
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const { error: authError } = await requireAdmin();
+  if (authError) return authError;
   const { id } = await params;
   const articleId = parseInt(id);
   if (isNaN(articleId))
@@ -20,6 +24,8 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const { error: authError } = await requireAdmin();
+  if (authError) return authError;
   const { id } = await params;
   const articleId = parseInt(id);
   if (isNaN(articleId))
@@ -49,6 +55,7 @@ export async function POST(
         parentId: parentId ? parseInt(parentId) : null,
       },
     });
+    revalidateArticlePages();
     return NextResponse.json(item, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Failed to create" }, { status: 500 });
