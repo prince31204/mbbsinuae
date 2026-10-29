@@ -1,11 +1,12 @@
 "use client";
 
+import { Suspense } from "react";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { GraduationCap, Loader2, RefreshCw } from "lucide-react";
 
-export default function OtpVerificationPage() {
+function OtpVerificationForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
@@ -177,5 +178,19 @@ export default function OtpVerificationPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function OtpVerificationPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center text-sm text-gray-500">
+          Loading...
+        </div>
+      }
+    >
+      <OtpVerificationForm />
+    </Suspense>
   );
 }

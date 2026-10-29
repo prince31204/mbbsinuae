@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
+import { revalidateArticlePages } from "@/lib/revalidate-public-content";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -13,6 +14,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     where: { id: parseInt(id) },
     data: body,
   });
+  revalidateArticlePages();
   return NextResponse.json(item);
 }
 
@@ -21,5 +23,6 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   if (authError) return authError;
   const { id } = await params;
   await prisma.articleCategory.delete({ where: { id: parseInt(id) } });
+  revalidateArticlePages();
   return NextResponse.json({ success: true });
 }

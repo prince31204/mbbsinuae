@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
 import { normalizeLocalUpload, promoteTmpUpload } from "@/lib/upload-paths";
+import { revalidateArticlePages } from "@/lib/revalidate-public-content";
 
 export async function GET(req: NextRequest) {
   const { session, error: authError } = await requireAdmin();
@@ -39,33 +40,124 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const { session, error: authError } = await requireAdmin();
   if (authError) return authError;
-  const body = await req.json();
-  if (!body.title || !body.slug)
+  let body: Record<string, unknown>;
+  try {
+    const parsed: unknown = await req.json();
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return NextResponse.json(
+        { error: "Request body must be a JSON object." },
+        { status: 400 },
+      );
+    }
+    body = parsed as Record<string, unknown>;
+  } catch {
+    return NextResponse.json(
+      { error: "Request body must be valid JSON." },
+      { status: 400 },
+    );
+  }
+
+  if (
+    typeof body.title !== "string" ||
+    !body.title.trim() ||
+    typeof body.slug !== "string" ||
+    !body.slug.trim()
+  )
     return NextResponse.json(
       { error: "Title and slug required" },
       { status: 400 },
     );
+  const categoryId = Number(body.categoryId);
+  const authorId = Number(session.user?.id);
+  if (!Number.isSafeInteger(categoryId) || categoryId <= 0) {
+    return NextResponse.json(
+      { error: "Select a valid article category." },
+      { status: 400 },
+    );
+  }
+  if (!Number.isSafeInteger(authorId) || authorId <= 0) {
+    return NextResponse.json(
+      { error: "Unable to determine the current author." },
+      { status: 401 },
+    );
+  }
+  const [category, author] = await Promise.all([
+    prisma.articleCategory.findUnique({
+      where: { id: categoryId },
+      select: { id: true },
+    }),
+    prisma.user.findUnique({ where: { id: authorId }, select: { id: true } }),
+  ]);
+  if (!category) {
+    return NextResponse.json(
+      { error: "The selected article category does not exist." },
+      { status: 400 },
+    );
+  }
+  if (!author) {
+    return NextResponse.json(
+      { error: "The current author account could not be found." },
+      { status: 401 },
+    );
+  }
+
+  for (const field of [
+    "shortnote",
+    "description",
+    "thumbnailPath",
+    "imagePath",
+    "metaTitle",
+    "metaKeyword",
+    "metaDescription",
+  ]) {
+    if (
+      body[field] !== undefined &&
+      body[field] !== null &&
+      typeof body[field] !== "string"
+    ) {
+      return NextResponse.json(
+        { error: `${field} must be a string.` },
+        { status: 400 },
+      );
+    }
+  }
+  for (const field of ["status", "homeView", "trending"]) {
+    if (body[field] !== undefined && typeof body[field] !== "boolean") {
+      return NextResponse.json(
+        { error: `${field} must be true or false.` },
+        { status: 400 },
+      );
+    }
+  }
+
   const thumbnailPath =
-    normalizeLocalUpload(body.thumbnailPath) ?? body.thumbnailPath ?? null;
+    normalizeLocalUpload(body.thumbnailPath as string | null | undefined) ??
+    (body.thumbnailPath as string | null | undefined) ??
+    null;
   const imagePath =
-    normalizeLocalUpload(body.imagePath) ?? body.imagePath ?? null;
+    normalizeLocalUpload(body.imagePath as string | null | undefined) ??
+    (body.imagePath as string | null | undefined) ??
+    null;
 
   let item = await prisma.article.create({
     data: {
-      title: body.title,
-      slug: body.slug,
-      shortnote: body.shortnote || null,
-      description: body.description || null,
+      title: body.title.trim(),
+      slug: body.slug.trim(),
+      shortnote:
+        (body.shortnote as string | null | undefined) || null,
+      description:
+        (body.description as string | null | undefined) || null,
       thumbnailPath,
       imagePath,
-      categoryId: body.categoryId ? parseInt(body.categoryId) : 1,
-      authorId: parseInt(session.user?.id as string) || 1,
-      status: body.status ?? true,
-      homeView: body.homeView ?? false,
-      trending: body.trending ?? false,
-      metaTitle: body.metaTitle || null,
-      metaKeyword: body.metaKeyword || null,
-      metaDescription: body.metaDescription || null,
+      categoryId,
+      authorId,
+      status: (body.status as boolean | undefined) ?? true,
+      homeView: (body.homeView as boolean | undefined) ?? false,
+      trending: (body.trending as boolean | undefined) ?? false,
+      metaTitle: (body.metaTitle as string | null | undefined) || null,
+      metaKeyword: (body.metaKeyword as string | null | undefined) || null,
+      metaDescription:
+        (body.metaDescription as string | null | undefined) || null,
     },
   });
 
@@ -81,5 +173,6 @@ export async function POST(req: NextRequest) {
       data: updates,
     });
   }
+  revalidateArticlePages();
   return NextResponse.json(item, { status: 201 });
 }

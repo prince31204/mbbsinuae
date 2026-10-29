@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/adminAuth";
+import { revalidateScholarshipPages } from "@/lib/revalidate-public-content";
 
 type Params = { params: Promise<{ id: string }> };
 const dateOnlyPattern = /^\d{4}-\d{2}-\d{2}$/;
@@ -127,9 +128,19 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   try {
     const body = await req.json();
     const data = normalizeScholarshipBody(body);
-    return NextResponse.json(
-      await prisma.scholarship.update({ where: { id: parseInt(id) }, data }),
-    );
+    const existing = await prisma.scholarship.findUnique({
+      where: { id: parseInt(id) },
+      select: { slug: true },
+    });
+    const updated = await prisma.scholarship.update({
+      where: { id: parseInt(id) },
+      data,
+    });
+    revalidateScholarshipPages(existing?.slug);
+    if (updated.slug !== existing?.slug) {
+      revalidateScholarshipPages(updated.slug);
+    }
+    return NextResponse.json(updated);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to update scholarship.";
@@ -147,6 +158,11 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   const { session, error: authError } = await requireAdmin();
   if (authError) return authError;
   const { id } = await params;
+  const existing = await prisma.scholarship.findUnique({
+    where: { id: parseInt(id) },
+    select: { slug: true },
+  });
   await prisma.scholarship.delete({ where: { id: parseInt(id) } });
+  revalidateScholarshipPages(existing?.slug);
   return NextResponse.json({ success: true });
 }

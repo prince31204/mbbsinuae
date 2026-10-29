@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/adminAuth";
 import { prisma } from "@/lib/prisma";
+import { revalidateArticlePages } from "@/lib/revalidate-public-content";
 
 export async function GET() {
   const { session, error: authError } = await requireAdmin();
@@ -24,5 +25,6 @@ export async function POST(req: NextRequest) {
       status: body.status ?? true,
     },
   });
+  revalidateArticlePages();
   return NextResponse.json(item, { status: 201 });
 }

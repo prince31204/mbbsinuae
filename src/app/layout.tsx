@@ -54,17 +54,14 @@ export const metadata: Metadata = {
   },
 };
 
-import { auth } from "@/lib/auth";
 import Script from "next/script";
 import CookieConsent from "@/components/common/CookieConsent";
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await auth();
-
   return (
     <html lang="en">
       <head>
@@ -90,7 +87,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
             style={{ display: "none", visibility: "hidden" }}
           />
         </noscript>
-        <Providers session={session}>
+        <Providers>
           {children}
           <CookieConsent />
         </Providers>

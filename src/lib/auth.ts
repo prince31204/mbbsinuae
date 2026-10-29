@@ -15,6 +15,7 @@ const loginSchema = z.object({
 // Extends the edge-safe authConfig with the Credentials provider that needs Prisma + bcrypt.
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
+  trustHost: true,
   providers: [
     Credentials({
       id: "student-credentials",
