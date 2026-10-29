@@ -11,13 +11,12 @@ const pool =
   globalForPrisma.pool ??
   new Pool({
     connectionString: process.env.DATABASE_URL!,
-    ssl: false,
-    max: 1,
+    ssl: { rejectUnauthorized: false },
+    max: 5,
   });
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.pool = pool;
-}
+// Cache in ALL environments to prevent connection pool exhaustion in production
+globalForPrisma.pool = pool;
 
 export const prisma =
   globalForPrisma.prisma ??
@@ -25,6 +24,5 @@ export const prisma =
     adapter: new PrismaPg(pool),
   });
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
+// Cache in ALL environments to reuse the same PrismaClient instance
+globalForPrisma.prisma = prisma;
